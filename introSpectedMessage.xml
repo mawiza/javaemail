@@ -1,0 +1,138 @@
+<?xml version='1.0' ?>  <message>
+    <body>
+      <bodyParts>
+        <BodyPart>
+          <bodyParts/>
+          <boundary>unique-boundary-1</boundary>
+          <content>
+This could have been part of the previous part,
+but illustrates explicit versus implicit
+typing of body parts.
+
+</content>
+          <headerFields>
+            <HeaderField>
+              <body>text/plain; charset=US-ASCII</body>
+              <name>Content-type:</name>
+            </HeaderField>
+          </headerFields>
+          <multipart>false</multipart>
+        </BodyPart>
+        <BodyPart>
+          <bodyParts/>
+          <boundary>unique-boundary-1</boundary>
+          <content>
+ ...Some text appears here...
+[Note that the preceding blank line means
+no header fields were given and this is text,
+with charset US ASCII.  It could have been
+done with explicit typing as in the next part.]
+
+</content>
+          <headerFields/>
+          <multipart>false</multipart>
+        </BodyPart>
+        <BodyPart>
+          <bodyParts>
+            <BodyPart>
+              <bodyParts/>
+              <boundary>unique-boundary-2</boundary>
+              <content>
+ ... base64-encoded image data goes here....
+
+</content>
+              <headerFields>
+                <HeaderField>
+                  <body>base64</body>
+                  <name>Content-Transfer-Encoding:</name>
+                </HeaderField>
+                <HeaderField>
+                  <body>image/gif</body>
+                  <name>Content-Type:</name>
+                </HeaderField>
+              </headerFields>
+              <multipart>false</multipart>
+            </BodyPart>
+            <BodyPart>
+              <bodyParts/>
+              <boundary>unique-boundary-2</boundary>
+              <content>
+ ... base64-encoded 8000 Hz single-channel
+     mu-law-format audio data goes here....
+
+</content>
+              <headerFields>
+                <HeaderField>
+                  <body>base64</body>
+                  <name>Content-Transfer-Encoding:</name>
+                </HeaderField>
+                <HeaderField>
+                  <body>audio/basic</body>
+                  <name>Content-Type:</name>
+                </HeaderField>
+              </headerFields>
+              <multipart>false</multipart>
+            </BodyPart>
+          </bodyParts>
+          <boundary>unique-boundary-1</boundary>
+          <content>
+
+</content>
+          <headerFields>
+            <HeaderField>
+              <body>multipart/parallel;   boundary=unique-boundary-2</body>
+              <name>Content-Type:</name>
+            </HeaderField>
+          </headerFields>
+          <multipart>true</multipart>
+        </BodyPart>
+        <BodyPart>
+          <bodyParts/>
+          <boundary>unique-boundary-1</boundary>
+          <content>
+This is &lt;bold&gt;&lt;italic&gt;richtext.&lt;/italic&gt;&lt;/bold&gt;
+&lt;smaller&gt;as defined in RFC 1341&lt;/smaller&gt;
+&lt;nl&gt;&lt;nl&gt;Isn't it
+&lt;bigger&gt;&lt;bigger&gt;cool?&lt;/bigger&gt;&lt;/bigger&gt;
+
+</content>
+          <headerFields>
+            <HeaderField>
+              <body>text/richtext</body>
+              <name>Content-type:</name>
+            </HeaderField>
+          </headerFields>
+          <multipart>false</multipart>
+        </BodyPart>
+      </bodyParts>
+      <content/>
+      <multipart>true</multipart>
+    </body>
+    <epilogue/>
+    <headerFields>
+      <HeaderField>
+        <body>Ned Freed &lt;ned@innosoft.com&gt;</body>
+        <name>To:</name>
+      </HeaderField>
+      <HeaderField>
+        <body>Nathaniel Borenstein &lt;nsb@bellcore.com&gt;</body>
+        <name>From:</name>
+      </HeaderField>
+      <HeaderField>
+        <body>A multipart example</body>
+        <name>Subject:</name>
+      </HeaderField>
+      <HeaderField>
+        <body>multipart/mixed;   boundary=unique-boundary-1</body>
+        <name>Content-Type:</name>
+      </HeaderField>
+    </headerFields>
+    <preamble>
+This is the preamble area of a multipart message.
+Mail readers that understand multipart format
+should ignore this preamble.
+If you are reading this text, you might want to
+consider changing to a mail reader that understands
+how to properly display multipart messages.
+</preamble>
+  </message>
