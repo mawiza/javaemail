@@ -1,0 +1,371 @@
+Some years back I wrote an email message parser in java thath complies with RFC2045, RFC2046, RFC2822 and RFC2387. What it does is it unmarshals an email message, into java header and body objects, using regular expressions. I have tested messages from a number of different MUA’s with success, and it can handle an unlimitted number of nested bodyparts, attachments, etc.
+
+I wrote the parser to be used in conjunction with Jakarta Struts, so that I could post messages to my site using ordinary email clients.
+
+Here follows a brief description.
+
+Parsing the message
+-------------------
+
+First of all the text needs to be splitted at the first empy line(regex = “^$”) encountered.
+
+private String [] splitAtEmpty(String string){
+    final String RULE1 = "^$";
+    final int LIMIT  = 2;
+ 
+    Pattern p = Pattern.compile(RULE1, Pattern.MULTILINE);
+    String parts[] = p.split(string, LIMIT);
+ 
+    return parts;
+}
+
+According to RFC2822 the header and the body are seperated by the first encountered null string, a CRLF preceded by nothing. parseMessage(String message) seperates the header(folded) and the body and save each part in a String array where part[0] contains the header(folded) and part[1] the body(the body consist of body parts, eg. attachments, etc).
+
+private void parseMessage(String msg){
+    try{
+        String parts[] = splitAtEmpty(msg);
+        message.setHeaderFields(mapHeader(parts[HEADER]));
+        message.setBody(mapBody(parts[BODY]));
+    }catch(NullPointerException nse) {
+       log.debug(nse);
+    }catch(ArrayIndexOutOfBoundsException aiobe) {
+       log.debug("parseMessage(): " + aiobe);
+    }
+}
+
+Mapping the header
+------------------
+
+Search for a header field name in a set using a regular expression.
+
+private HeaderField findHeaderField(Set set, String regex){
+    Iterator iterator = set.iterator();
+    while(iterator.hasNext()){
+        HeaderField obj = (HeaderField)iterator.next();
+        if(obj.getName().matches(regex)){
+            return obj;
+        }
+    }
+    return null;
+}
+
+Unfolds and map each header field into a dk.miles.messenger.message.HeaderField object. The dk.miles.messenger.message.HeaderField objects are saved in a HashSet in dk.miles.messenger.message.Message. If the header field exist then the field to be mapped will be appended to the existing field.
+
+private Set mapHeader(String header){
+    Set fields = new HashSet();
+ 
+    /* Match the header field name
+     * \\w = a word charachter([a-zA-Z_0-9])
+     * X+? = X, one or more times
+     * (?:X) = X, as a non-capturing group
+     * \\u002d = '-'
+     * \\u003a = ':'
+     * \\u0020 = '"'
+     * \\u002e = '.'
+     */
+    final String RULE1 = "^\\w+?(?:[\\u002d\\u002e]\\w+?){0,}[\\u003a\\u0020]";        
+ 
+    /* Match the header field body
+     * \\u000a = 'NL'
+     * \\u0009 = 'TAB'
+     * \\u0020 = 'Space'
+     */
+    final String RULE2 = ".*\\u000a(?:^(?:[\\u0020\\u0009]){1,}.*$){0,}";
+ 
+    /* match any tabs or spaces or NL or CR
+     * u000d = 'CR'
+     */
+    final String RULE3 = "^(?:[\\u0020\\u0009]){1,}|\\u000a|\\u000d";
+ 
+    /* match tabs
+     */
+    final String RULE4 = "\\u0009";
+ 
+    try{
+        Pattern pattern1 = Pattern.compile(RULE1 + RULE2, Pattern.MULTILINE);
+        Pattern pattern2 = Pattern.compile(RULE1, Pattern.MULTILINE);
+ 
+        Matcher matcher1 = pattern1.matcher(header);
+        while(matcher1.find()){
+            String raw = matcher1.group();
+ 
+            Matcher matcher2 = pattern2.matcher(raw);
+            if(matcher2.find()){
+                String fieldName = matcher2.group();
+ 
+                //Getting rid of the field name
+                String fieldBody = raw.replaceFirst(RULE1, "");
+                //Unfolding the body
+                fieldBody = fieldBody.replaceAll(RULE3, "");
+                //Replacing any leftover tabs with a single space
+                fieldBody = fieldBody.replaceAll(RULE4, " ");
+ 
+                //Finding out if the field name exists
+                HeaderField fieldObj = findHeaderField(fields, fieldName);
+                if(fieldObj == null){
+                    fieldObj = new HeaderField();
+                    fieldObj.setRaw(raw);
+                    fieldObj.setName(fieldName);
+                    fieldObj.setBody(fieldBody);
+                    fields.add(fieldObj);
+                }
+                else{
+                    fieldObj.setRaw(fieldObj.getRaw() + raw);
+                    fieldObj.setBody(fieldObj.getBody() + " " + fieldBody);
+                }
+            }
+        }
+        //log.debug("[HEADER_FIELDS]: " + fields.toString());
+    }catch(PatternSyntaxException pse) {
+       logPatternSyntaxException(pse);
+    }
+    return fields;
+}
+ 
+Mapping the body
+----------------
+
+This should comply to RFC2045, RFC2046, RFC2822 and RFC2387.
+Allthough all header fields in the MIME bodypart header not starting with “content-” can be ignored, all header fields in the bodypart are mapped. We brake the body up, if it is specified in the headers that it is a multipart message, otherwise only the body content will be saved.
+
+private Body mapBody(String bodyContent){
+    Body bodyObj = new Body();
+    bodyObj.setRaw(bodyContent);        
+ 
+    //Defines the message body content
+    final String RULE1 = "(?i)Content-Type[:\\u0020]";
+ 
+    //If this is a multipart message
+    final String RULE2 = "(?i)multipart.*";
+ 
+    //Making shure the boundary is specified
+    final String RULE3 = "(?i).*boundary=.*";
+ 
+    try{
+        HeaderField field = findHeaderField(message.getHeaderFields(), RULE1);
+        if(field != null){
+            String fieldBody = field.getBody();
+            if(fieldBody.matches(RULE2)){
+                //log.debug("This is a multipart message!");
+                if(fieldBody.matches(RULE3)){
+                    //Sometimes informational text is included before the
+                    //first boundary starts called the preamble this
+                    //is being captured here and mappend into
+                    //Messsage.preamble, this text normally does not get
+                    //displayed by MUAs that proparly support multipart
+                    String parts[] = splitBeforeBoundry(bodyContent,
+                                                        getBoundary(field.getRaw()),
+                                                        true,
+                                                        true);
+ 
+                    message.setPreamble(parts[PREAMBLE]);
+                    //log.debug("BODYPART[" + PREAMBLE + "]: " + parts[PREAMBLE]);
+                    //log.debug("BODYPART[" + parts[BODY]);
+                    bodyObj.setBodyParts(mapBodyParts(parts[BODY], getBoundary(field.getRaw())));
+                }
+                else{
+                    log.error("Multipart message without a specified boundary, " +
+                              "message does no comply to any standard RFCs, " +
+                              "the content will not be processed");
+                    bodyObj.setContent(bodyContent);
+                }
+            }
+            else{
+                //log.debug("This is not a multipart message!");
+                bodyObj.setContent(bodyContent);
+            }
+        }
+        else{
+            //log.debug("This is not a multipart message!");
+            bodyObj.setContent(bodyContent);
+        }
+        //log.debug("[BODYPARTS]: " + bodyObj.getBodyParts().toString());
+    }catch(PatternSyntaxException pse) {
+       logPatternSyntaxException(pse);
+    }
+    catch(NullPointerException nse) {
+       log.debug(nse);
+    }
+    catch(ArrayIndexOutOfBoundsException aiobe) {
+       log.debug("mapBody(): " + aiobe);
+    }
+ 
+    return bodyObj;
+}
+
+Split the text before the first specified boundary is encountered.
+
+private String [] splitBeforeBoundry(String string, String boundary, boolean dh, boolean include){
+    final int LIMIT  = 2;
+ 
+    if(dh)
+        boundary = "--" + boundary;
+ 
+    Pattern p = Pattern.compile(boundary, Pattern.MULTILINE);
+ 
+    //this removes the boundary, we do not always want that
+    String parts[] = p.split(string, LIMIT);
+    if(include){
+            parts[1] = boundary + parts[1];
+    }
+ 
+    return parts;
+}
+
+Mapping the bodyparts recursively.
+----------------------------------
+
+private Set mapBodyParts(String body, String boundary){
+    Set bodyParts = new HashSet();
+ 
+    String parts[];        
+ 
+    //This will match both --boundary and --boundary--
+    final String RULE1 = "(?m)^--" + boundary + ".*$\n";
+ 
+    try{
+        //Now we need to get the bodypart from --boundary to --boundary-- or
+        //--boundary to --boundary, where boundary is the same constant.
+        parts = body.split(RULE1);
+        for(int i = 0; i &lt; parts.length; i++){
+            if(parts[i].length()&gt;0){
+                //if it is the last part and it contains '--' then we will disregard it.
+                if((parts.length-1)!=i){
+                    //log.debug("FOUND PART[" + i + "]: " + parts[i]);
+                    bodyParts.add(mapBodyPart(parts[i], boundary));
+                }
+            }
+        }
+    }catch(PatternSyntaxException pse) {
+       logPatternSyntaxException(pse);
+    }
+    catch(NullPointerException nse) {
+       log.debug("mapBodyParts(): " + nse);
+    }
+    catch(ArrayIndexOutOfBoundsException aiobe) {
+       log.debug("mapBodyParts(): " + aiobe);
+    }
+ 
+    return bodyParts;
+}    
+ 
+private BodyPart mapBodyPart(String bodyPart, String boundary){
+    //Defines the bodypart content
+    final String RULE1 = "(?i)Content-Type[:\\u0020]";
+ 
+    //If this is a multipart bodypart
+    final String RULE2 = "(?i)multipart.*";
+ 
+    //Making shure the boundary is specified
+    final String RULE3 = "(?i).*boundary=.*";
+ 
+    BodyPart bodyPartObj = new BodyPart();
+    bodyPartObj.setRaw(bodyPart);
+    bodyPartObj.setBoundary(boundary);
+ 
+    try{
+        //According to the RFC's there has to be a newline between the content and
+        //the boundary or headers. So the text passed to this method will not contain any
+        //boundaries, this would have been removed by the mapBodyParts method. If there
+        //are no headers specified, then the text will start with an empty line.
+        String parts[]=splitAtEmpty(bodyPart);
+ 
+        //log.debug("BodyPart Header[" + HEADER + "]: " + parts[HEADER]);
+        //log.debug("BodyPart Content: " + parts[BODY]);
+        bodyPartObj.setHeaderFields(mapHeader(parts[HEADER]));
+ 
+        HeaderField field = findHeaderField(bodyPartObj.getHeaderFields(), RULE1);
+        if(field != null){
+            String fieldBody = field.getBody();
+            if(fieldBody.matches(RULE2)){
+                //log.debug("This is a multipart bodypart!");
+                if(fieldBody.matches(RULE3)){
+                    String nestedParts[] = splitBeforeBoundry(parts[BODY],
+                                                        getBoundary(field.getRaw()),
+                                                        true,
+                                                        true);
+                    //log.debug("NESTED_BODYPART_CONTENT: " + nestedParts[BODYPART_CONTENT]);
+                    bodyPartObj.setContent(nestedParts[HEADER]);
+                    //log.debug("NESTED_BODYPART: " + nestedParts[BODY]);
+                    bodyPartObj.setBodyParts(mapBodyParts(nestedParts[BODY], getBoundary(field.getRaw())));
+                }
+                else{
+                    log.error("Multipart body part without a specified boundary, " +
+                              "message does no comply to any standard RFCs, " +
+                              "the content will not be processed");
+                    bodyPartObj.setContent(parts[BODY]);
+                }
+            }
+            else{
+                //log.debug("This is not a multipart bodypart!");
+                bodyPartObj.setContent(parts[BODY]);
+            }
+        }
+        else{
+            //log.debug("This is not a multipart bodypart!!");
+            bodyPartObj.setContent(parts[BODY]);
+        }
+    }catch(PatternSyntaxException pse) {
+       logPatternSyntaxException(pse);
+    }
+    catch(NullPointerException nse) {
+       log.debug("mapBodyPart(): " + nse);
+    }
+    catch(ArrayIndexOutOfBoundsException aiobe) {
+       log.debug("mapBodyPart(): " + aiobe);
+    }    
+ 
+    return bodyPartObj;
+}
+
+Retreives the boundary used to determine the start of the bodypart. Note: This algorithm used is only temporary until I have sorted out the regex to do the exact match.
+
+private String getBoundary(String contentTypeBody){
+    String boundary = null;
+ 
+    try{
+        //The boundary string.
+        final String RULE1 = "(?i)(?m)boundary=.*$";
+ 
+        //The boundary, the = sign and a '"' if it exist.
+        final String RULE2 = "(?i)^(\\u0020){0,}boundary((?:=\")|(?:=))";
+ 
+        //The colon or quote, any stray spaces and end of line.
+        //String RULE3 = "(?m)((\";)|(\")|(;))((\\p{Space}){0,}|(\\u0020){0,})$";
+        final String RULE3 = "(?m)((\";)|(\")|(;))((\\p{Space}){0,}|(\"){0,})$";
+ 
+        Pattern pattern1 = Pattern.compile(RULE1);
+        Matcher matcher1 = pattern1.matcher(contentTypeBody);
+ 
+        if(matcher1.find()){
+            //Matching the boundary string
+            boundary = matcher1.group();
+ 
+            //Replacing the "boundary=" name
+            boundary = boundary.replaceAll(RULE2, "");
+ 
+            //replacing the quotes or colon if it exists
+            //This is a tempoaray solution
+            Pattern pattern2 = Pattern.compile(RULE3);
+            Matcher matcher2 = pattern2.matcher(boundary);
+ 
+            if(matcher2.find()){
+                boundary = boundary.substring(0,matcher2.start());
+                //The below replacement will give problems with nested quotes
+                //boundary = boundary.replaceAll(matcher2.group(), "");
+            }
+        }
+ 
+        //log.debug("[BOUNDARY]: " + boundary);
+    }catch(PatternSyntaxException pse) {
+       logPatternSyntaxException(pse);
+    }
+ 
+    return boundary;
+}
+
+And that is basically it. Now we can get hold of the object by calling getMessage(), which will contain the unmarshalled email message.
+
+public Message getMessage(){
+    return message;
+}
