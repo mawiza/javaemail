@@ -3,20 +3,20 @@
  *
  * Created on June 25, 2003, 3:25 PM
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * This file is part of javaemail.
+ * 
+ * javaemail is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
+ * 
+ * javaemail is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Library General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
- * USA.
+ * GNU Lesser General  Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with javaemail.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 package dk.miles.messenger.message;
@@ -37,7 +37,7 @@ public class Body extends BaseMessageObject{
     private String content = null;
     
     /** Holds value of property bodyParts. */
-    private Set bodyParts = null;
+    private Set<BodyPart> bodyParts = null;
       
     /** Getter for property multipart.
      * @return Value of property multipart.
@@ -75,7 +75,7 @@ public class Body extends BaseMessageObject{
      * @return Value of property bodyParts.
      *
      */
-    public Set getBodyParts() {
+    public Set<BodyPart> getBodyParts() {
         return this.bodyParts;
     }
     
@@ -83,7 +83,7 @@ public class Body extends BaseMessageObject{
      * @param bodyParts New value of property bodyParts.
      *
      */
-    protected void setBodyParts(Set bodyParts) {
+    protected void setBodyParts(Set<BodyPart> bodyParts) {
         setMultipart(true);
         this.bodyParts = bodyParts;
     }

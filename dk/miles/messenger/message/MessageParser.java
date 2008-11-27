@@ -3,20 +3,20 @@
  *
  * Created on June 20, 2003, 10:46 AM
  *
- * This program is free software; you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation; either version 2 of the License, or
+ * This file is part of javaemail.
+ * 
+ * javaemail is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
+ * 
+ * javaemail is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Library General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program; if not, write to the Free Software
- * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307,
- * USA.
+ * GNU Lesser General  Public License for more details.
+ * 
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with javaemail.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.miles.messenger.message;
 
@@ -264,31 +264,26 @@ public class MessageParser {
                         //log.debug("BODYPART[" + PREAMBLE + "]: " + parts[PREAMBLE]);
                         //log.debug("BODYPART[" + parts[BODY]);
                         bodyObj.setBodyParts(mapBodyParts(parts[BODY], getBoundary(field.getRaw())));                        
-                    }
-                    else{                        
+                    }else{                        
                         log.error("Multipart message without a specified boundary, " +
                                   "message does no comply to any standard RFCs, " +
                                   "the content will not be processed");
                         bodyObj.setContent(bodyContent);
                     }
-                }
-                else{
+                }else{
                     //log.debug("This is not a multipart message!");
                     bodyObj.setContent(bodyContent);
                 }
-            }
-            else{
+            }else{
                 //log.debug("This is not a multipart message!");                
                 bodyObj.setContent(bodyContent);
             }
             //log.debug("[BODYPARTS]: " + bodyObj.getBodyParts().toString());
         }catch(PatternSyntaxException pse) {
            logPatternSyntaxException(pse);
-        }
-        catch(NullPointerException nse) {
+        }catch(NullPointerException nse) {
            log.debug(nse);
-        }
-        catch(ArrayIndexOutOfBoundsException aiobe) {
+        }catch(ArrayIndexOutOfBoundsException aiobe) {
            log.debug("mapBody(): " + aiobe);
         }
         
@@ -321,11 +316,9 @@ public class MessageParser {
             }
         }catch(PatternSyntaxException pse) {
            logPatternSyntaxException(pse);
-        }
-        catch(NullPointerException nse) {
+        }catch(NullPointerException nse) {
            log.debug("mapBodyParts(): " + nse);
-        }
-        catch(ArrayIndexOutOfBoundsException aiobe) {
+        }catch(ArrayIndexOutOfBoundsException aiobe) {
            log.debug("mapBodyParts(): " + aiobe);
         }
         
@@ -373,33 +366,27 @@ public class MessageParser {
                         bodyPartObj.setContent(nestedParts[HEADER]); 
                         //log.debug("NESTED_BODYPART: " + nestedParts[BODY]);
                         bodyPartObj.setBodyParts(mapBodyParts(nestedParts[BODY], getBoundary(field.getRaw())));                        
-                    }
-                    else{                        
+                    }else{                        
                         log.error("Multipart body part without a specified boundary, " +
                                   "message does no comply to any standard RFCs, " +
                                   "the content will not be processed");
                         bodyPartObj.setContent(parts[BODY]);
                     }
-                }
-                else{
+                }else{
                     //log.debug("This is not a multipart bodypart!");
                     bodyPartObj.setContent(parts[BODY]);
                 }
-            }
-            else{
+            }else{
                 //log.debug("This is not a multipart bodypart!!");
                 bodyPartObj.setContent(parts[BODY]);
             }
         }catch(PatternSyntaxException pse) {
            logPatternSyntaxException(pse);
-        }
-        catch(NullPointerException nse) {
+        }catch(NullPointerException nse) {
            log.debug("mapBodyPart(): " + nse);
-        }
-        catch(ArrayIndexOutOfBoundsException aiobe) {
+        }catch(ArrayIndexOutOfBoundsException aiobe) {
            log.debug("mapBodyPart(): " + aiobe);
         }
-        
         
         return bodyPartObj;
     }
