@@ -1,4 +1,4 @@
-Some years back I wrote an email message parser in java thath complies with RFC2045, RFC2046, RFC2822 and RFC2387. What it does is it unmarshals an email message, into java header and body objects, using regular expressions. I have tested messages from a number of different MUA’s with success, and it can handle an unlimitted number of nested bodyparts, attachments, etc.
+Some years back I wrote an email message parser in java that complies with RFC2045, RFC2046, RFC2822 and RFC2387. What it does is it unmarshals an email message, into java header and body objects, using regular expressions. I have tested messages from a number of different MUA’s with success, and it can handle an unlimitted number of nested bodyparts, attachments, etc.
 
 I wrote the parser to be used in conjunction with Jakarta Struts, so that I could post messages to my site using ordinary email clients.
 
@@ -369,3 +369,6 @@ And that is basically it. Now we can get hold of the object by calling getMessag
 public Message getMessage(){
     return message;
 }
+
+
+See dk/miles/messenger/messag/Parse.java for an example on how one can use the code. 
